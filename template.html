@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажёр по психологии</title>
+<meta name="theme-color" content="#f6f7f9">
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #646b78; --line: #dfe2e8;
+  --accent: #2557d6; --accent-soft: #e6edfc; --ok: #13804b; --ok-soft: #e3f4ea;
+  --bad: #c9302c; --bad-soft: #fbe7e6; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317; --card: #1b1e24; --text: #eceef2; --muted: #9aa1ad; --line: #2e333c;
+    --accent: #7ea2ff; --accent-soft: #1f2a44; --ok: #4cc38a; --ok-soft: #17301f;
+    --bad: #ff7b72; --bad-soft: #3a1d1c; --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+.wrap { max-width: 680px; margin: 0 auto; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
+h1 { font-size: 22px; margin: 8px 0 4px; }
+.sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+.label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 8px; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--line); padding: 4px; border-radius: 12px; }
+.seg button { border: 0; background: transparent; padding: 10px 6px; border-radius: 9px; font-weight: 600; font-size: 15px; }
+.seg button small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.seg button[aria-pressed="true"] { background: var(--card); box-shadow: var(--shadow); }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.stat span { display: block; line-height: 1.25; }
+.stat { background: var(--card); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+.stat b { font-size: 20px; display: block; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; background: var(--ok); border-radius: 3px; }
+
+.modes { display: grid; gap: 8px; }
+.mode { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+.mode:disabled { opacity: .45; cursor: default; }
+.mode .ic { width: 36px; height: 36px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-size: 18px; font-weight: 700; }
+.mode b { display: block; }
+.mode span { color: var(--muted); font-size: 14px; }
+.pills { display: flex; gap: 6px; margin-top: 8px; }
+.pills button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+.pills button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.link { background: none; border: 0; color: var(--muted); text-decoration: underline; font-size: 14px; padding: 8px 0; margin-top: 24px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.back { border: 0; background: none; color: var(--accent); padding: 6px 0; font-weight: 600; }
+.count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 18px; }
+.progress i { display: block; height: 100%; background: var(--accent); transition: width .25s ease; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; }
+.question { font-size: 18px; font-weight: 600; white-space: pre-line; margin: 0 0 16px; }
+.opts { display: grid; gap: 8px; }
+.opt { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; transition: border-color .15s, background-color .15s; }
+.opt .k { flex: none; width: 26px; height: 26px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--muted); }
+.opt.multi .k { border-radius: 6px; }
+.opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+.opt.sel .k { border-color: var(--accent); background: var(--accent); color: #fff; }
+.opt.ok { border-color: var(--ok); background: var(--ok-soft); }
+.opt.ok .k { border-color: var(--ok); background: var(--ok); color: #fff; }
+.opt.bad { border-color: var(--bad); background: var(--bad-soft); }
+.opt.bad .k { border-color: var(--bad); background: var(--bad); color: #fff; }
+.opt.missed { border-color: var(--ok); border-style: dashed; }
+.opt.missed .k { border-color: var(--ok); color: var(--ok); }
+.opt:disabled { cursor: default; color: var(--text); }
+.feedback { margin-top: 14px; font-weight: 600; min-height: 1.4em; }
+.feedback.ok { color: var(--ok); }
+.feedback.bad { color: var(--bad); }
+
+.dock { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 20px 16px calc(16px + env(safe-area-inset-bottom)); }
+.dock div { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; }
+.dock .ghost, .dock .primary { flex: 1; width: auto; }
+.mode.featured { border-color: var(--accent); }
+.mode.featured .ic { background: var(--accent); color: #fff; }
+.hint { color: var(--muted); font-size: 14px; margin-top: 14px; }
+div.opt { cursor: default; }
+.primary { width: 100%; border: 0; border-radius: 14px; padding: 15px; font-weight: 700; font-size: 16px; background: var(--accent); color: #fff; }
+.primary:disabled { background: var(--line); color: var(--muted); cursor: default; }
+
+.score { text-align: center; background: var(--card); border-radius: 16px; padding: 24px 16px; box-shadow: var(--shadow); }
+.score b { font-size: 44px; display: block; font-variant-numeric: tabular-nums; }
+.score span { color: var(--muted); }
+.review { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-top: 10px; box-shadow: var(--shadow); }
+.review p { margin: 0 0 8px; font-weight: 600; white-space: pre-line; }
+.review li { margin: 4px 0; }
+.review .yes { color: var(--ok); font-weight: 600; }
+.review .no { color: var(--bad); text-decoration: line-through; }
+.review ul { margin: 0; padding: 0; list-style: none; }
+.review .no::before { content: "✗ "; display: inline-block; text-decoration: none; margin-right: 4px; }
+.row { display: grid; gap: 8px; margin-top: 16px; }
+.ghost { width: 100%; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px; font-weight: 600; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<div class="dock" id="dock" hidden><div><button class="ghost" id="secondary" hidden></button><button class="primary" id="primary"></button></div></div>
+<script>
+const DATA = /*DATA*/;
+const BLOCKS = { A: { name: 'Уровень 1', multi: false }, V: { name: 'Уровень 2', multi: true } };
+const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж'];
+const EXAM_SIZES = [20, 30, 50];
+const STORE_KEY = 'psy-trainer-v1';
+
+const ALL = Object.keys(BLOCKS).flatMap((b) => DATA[b].map((q, i) => ({
+  id: b + i, block: b, num: i + 1, text: q.q.join('\n'),
+  answers: q.a.map((a) => a.t), correct: q.a.flatMap((a, j) => (a.ok ? [j] : [])),
+})));
+const BY_ID = Object.fromEntries(ALL.map((q) => [q.id, q]));
+
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (raw && typeof raw === 'object') return { last: raw.last || {}, pos: raw.pos || {}, known: raw.known || {}, scope: raw.scope || 'A', exam: raw.exam || 30 };
+  } catch (e) { /* storage unavailable — work without it */ }
+  return { last: {}, pos: {}, known: {}, scope: 'A', exam: 30 };
+}
+let store = loadStore();
+function save(patch) {
+  store = { ...store, ...patch };
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
+}
+
+const app = document.getElementById('app');
+const dock = document.getElementById('dock');
+const primary = document.getElementById('primary');
+let session = null;
+let onPrimary = null;
+
+function el(tag, props = {}, ...kids) {
+  const node = document.createElement(tag);
+  Object.entries(props).forEach(([k, v]) => {
+    if (k === 'on') Object.entries(v).forEach(([ev, fn]) => node.addEventListener(ev, fn));
+    else if (k === 'text') node.textContent = v;
+    else if (v !== false && v != null) node.setAttribute(k, v === true ? '' : v);
+  });
+  kids.flat().forEach((c) => c != null && node.append(c));
+  return node;
+}
+const secondary = document.getElementById('secondary');
+let onSecondary = null;
+function setDock(label, handler, disabled = false, second = null) {
+  dock.hidden = !label;
+  primary.textContent = label || '';
+  primary.disabled = disabled;
+  onPrimary = handler;
+  secondary.hidden = !second;
+  secondary.textContent = second ? second.label : '';
+  onSecondary = second ? second.handler : null;
+}
+primary.addEventListener('click', () => onPrimary && onPrimary());
+secondary.addEventListener('click', () => onSecondary && onSecondary());
+
+function scopeIds(scope) { return ALL.filter((q) => scope === 'AV' || q.block === scope).map((q) => q.id); }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+/* ---------- home ---------- */
+function renderHome() {
+  session = null;
+  const scope = store.scope;
+  const ids = scopeIds(scope);
+  const solved = ids.filter((id) => store.last[id] === 1).length;
+  const wrong = ids.filter((id) => store.last[id] === 0);
+  const known = ids.filter((id) => store.known[id]).length;
+  const pos = store.pos[scope] || 0;
+  setDock(null);
+
+  const segBtn = (key, title) => el('button', { 'aria-pressed': String(scope === key), on: { click: () => { save({ scope: key }); renderHome(); } } },
+    title, el('small', { text: `${scopeIds(key).length} вопр.` }));
+  const mode = (ic, title, desc, handler, disabled = false) => el('button', { class: 'mode', disabled, on: { click: handler } },
+    el('span', { class: 'ic', text: ic }), el('div', {}, el('b', { text: title }), el('span', { text: desc })));
+
+  app.replaceChildren(
+    el('h1', { text: 'Тренажёр по психологии' }),
+    el('p', { class: 'sub', text: 'Тесты к дифференцированному зачёту — уровни 1 и 2' }),
+    el('div', { class: 'seg' }, segBtn('A', 'Уровень 1'), segBtn('V', 'Уровень 2'), segBtn('AV', 'Оба')),
+    el('div', { class: 'stats' },
+      el('div', { class: 'stat' }, el('b', { text: String(known) }), el('span', { text: `выучено из ${ids.length}` }),
+        el('div', { class: 'bar' }, el('i', { style: `width:${(known / ids.length) * 100}%` }))),
+      el('div', { class: 'stat' }, el('b', { text: String(solved) }), el('span', { text: 'верно в тестах' })),
+      el('div', { class: 'stat' }, el('b', { text: String(wrong.length) }), el('span', { text: 'ошибок на повторение' }))),
+    el('div', { class: 'label', text: 'Обучение' }),
+    el('div', { class: 'modes' },
+      learnMode(mode, ids)),
+    el('div', { class: 'label', text: 'Проверка' }),
+    el('div', { class: 'modes' },
+      mode('1→', 'По порядку', pos > 0 && pos < ids.length ? `продолжить с вопроса ${pos + 1}` : 'все вопросы подряд',
+        () => startSession('order', pos > 0 && pos < ids.length ? ids.slice(pos) : ids, pos > 0 && pos < ids.length ? pos : 0)),
+      mode('⤨', 'Вразброс', 'все вопросы в случайном порядке', () => startSession('random', shuffle(ids))),
+      mode('!', 'Мои ошибки', wrong.length ? `${wrong.length} ${plural(wrong.length, 'вопрос', 'вопроса', 'вопросов')}, где была ошибка` : 'ошибок пока нет',
+        () => startSession('errors', shuffle(wrong)), wrong.length === 0),
+      el('div', {},
+        mode('✓', 'Экзамен', `${store.exam} случайных вопросов, ответы — только в конце`, () => startSession('exam', shuffle(ids).slice(0, store.exam))),
+        el('div', { class: 'pills' }, EXAM_SIZES.map((n) => el('button', {
+          'aria-pressed': String(store.exam === n), text: `${n} вопр.`, on: { click: () => { save({ exam: n }); renderHome(); } },
+        }))))),
+    el('button', { class: 'link', text: 'Сбросить прогресс', on: { click: () => {
+      if (confirm('Сбросить весь прогресс: выученное, ошибки и место «по порядку»?')) { save({ last: {}, pos: {}, known: {} }); renderHome(); }
+    } } }),
+  );
+  window.scrollTo(0, 0);
+}
+
+/* ---------- learn: flashcards in batches, then a check ---------- */
+const BATCH = 10;
+const RETRY_GAP = 3;
+
+function nextBatch(ids) { return ids.filter((id) => !store.known[id]).slice(0, BATCH); }
+
+function learnMode(mode, ids) {
+  const batch = nextBatch(ids);
+  const left = ids.filter((id) => !store.known[id]).length;
+  const desc = batch.length
+    ? `по ${BATCH} вопросов: вспомни → посмотри ответ → проверка. Осталось ${left}`
+    : 'всё выучено — можно сбросить прогресс и пройти заново';
+  const node = mode('★', 'Учить', desc, () => startLearn(batch), batch.length === 0);
+  node.classList.add('featured');
+  return node;
+}
+
+function startLearn(batch) {
+  if (!batch.length) return;
+  session = { mode: 'learn', batch, queue: [...batch], done: 0, scope: store.scope };
+  renderCard();
+}
+
+function renderCard() {
+  const s = session;
+  const q = BY_ID[s.queue[0]];
+  const opts = q.answers.map((t, j) => el('div', { class: 'opt' + (BLOCKS[q.block].multi ? ' multi' : '') },
+    el('span', { class: 'k', text: LETTERS[j] }), el('span', { text: t })));
+  const hint = el('p', { class: 'hint', text: 'Вспомните ответ, потом откройте его.' });
+
+  function reveal() {
+    q.correct.forEach((j) => opts[j].classList.add('ok'));
+    hint.textContent = 'Правильно выделено зелёным. Вы это знали?';
+    setDock('Знал', knew, false, { label: 'Не знал', handler: didntKnow });
+    s.keys = (e) => { if (e.key === '1') didntKnow(); if (e.key === '2' || e.key === 'Enter') { e.preventDefault(); knew(); } };
+  }
+  function knew() {
+    s.queue.shift();
+    s.done += 1;
+    advance();
+  }
+  function didntKnow() {
+    const [id, ...rest] = s.queue;
+    s.queue = [...rest.slice(0, RETRY_GAP), id, ...rest.slice(RETRY_GAP)];
+    advance();
+  }
+  function advance() {
+    if (s.queue.length) { renderCard(); return; }
+    const batch = s.batch;
+    startSession('learn-check', shuffle(batch));
+    session.batch = batch;
+  }
+  s.keys = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reveal(); } };
+
+  const multi = BLOCKS[q.block].multi;
+  app.replaceChildren(
+    el('div', { class: 'top' },
+      el('button', { class: 'back', text: '← Меню', on: { click: renderHome } }),
+      el('span', { class: 'count', text: `запомнено ${s.done} из ${s.batch.length}` })),
+    el('div', { class: 'progress' }, el('i', { style: `width:${(s.done / s.batch.length) * 100}%` })),
+    el('span', { class: 'tag', text: `Учим · ${BLOCKS[q.block].name} №${q.num}` + (multi ? ` · правильных ${q.correct.length}` : '') }),
+    el('p', { class: 'question', text: q.text }),
+    el('div', { class: 'opts' }, opts),
+    hint,
+  );
+  setDock('Показать ответ', reveal);
+  window.scrollTo(0, 0);
+}
+
+/* ---------- quiz ---------- */
+function startSession(mode, ids, offset = 0) {
+  if (!ids.length) return;
+  session = { mode, ids, i: 0, offset, total: offset + ids.length, results: [], scope: store.scope };
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = BY_ID[session.ids[session.i]];
+  const multi = BLOCKS[q.block].multi;
+  const exam = session.mode === 'exam';
+  const order = shuffle(q.answers.map((_, j) => j));
+  const picked = new Set();
+  let answered = false;
+
+  const buttons = order.map((j, k) => el('button', {
+    class: 'opt' + (multi ? ' multi' : ''), on: { click: () => pick(j) },
+  }, el('span', { class: 'k', text: LETTERS[k] }), el('span', { text: q.answers[j] })));
+  const feedback = el('div', { class: 'feedback', 'aria-live': 'polite' });
+
+  function paintSelection() {
+    order.forEach((j, k) => buttons[k].classList.toggle('sel', picked.has(j)));
+    setDock(exam ? 'Ответить' : 'Проверить', check, picked.size === 0);
+  }
+  function pick(j) {
+    if (answered) return;
+    if (multi) { picked.has(j) ? picked.delete(j) : picked.add(j); paintSelection(); return; }
+    picked.clear(); picked.add(j);
+    if (exam) paintSelection(); else check();
+  }
+  function check() {
+    if (answered || picked.size === 0) return;
+    answered = true;
+    const ok = picked.size === q.correct.length && q.correct.every((j) => picked.has(j));
+    session.results.push({ id: q.id, ok, picked: [...picked] });
+    save({ last: { ...store.last, [q.id]: ok ? 1 : 0 } });
+    if (session.mode === 'order') save({ pos: { ...store.pos, [session.scope]: session.offset + session.i + 1 } });
+    if (exam) { next(); return; }
+    order.forEach((j, k) => {
+      const b = buttons[k];
+      b.disabled = true;
+      b.classList.remove('sel');
+      const isCorrect = q.correct.includes(j);
+      if (isCorrect && picked.has(j)) b.classList.add('ok');
+      else if (isCorrect) b.classList.add(multi ? 'missed' : 'ok');
+      else if (picked.has(j)) b.classList.add('bad');
+    });
+    feedback.className = 'feedback ' + (ok ? 'ok' : 'bad');
+    feedback.textContent = ok ? 'Верно!' : (multi ? 'Неверно. Зелёным — правильные ответы, пунктиром — те, что вы пропустили.' : 'Неверно. Правильный ответ выделен зелёным.');
+    setDock(session.i + 1 < session.ids.length ? 'Дальше' : 'Результат', next);
+  }
+  function next() {
+    session.i += 1;
+    if (session.i < session.ids.length) renderQuestion(); else renderResult();
+  }
+  session.keys = (e) => {
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= order.length) pick(order[n - 1]);
+    else if (e.key === 'Enter' && !primary.disabled && !dock.hidden) { e.preventDefault(); primary.click(); }
+  };
+
+  const shown = session.offset + session.i + 1;
+  const tagText = `${BLOCKS[q.block].name} · №${q.num}` + (multi ? ' · несколько правильных ответов' : '');
+  app.replaceChildren(
+    el('div', { class: 'top' },
+      el('button', { class: 'back', text: '← Меню', on: { click: () => (session.results.length && !confirm('Выйти в меню? Прогресс сохранится.') ? null : renderHome()) } }),
+      el('span', { class: 'count', text: `${shown} из ${session.total}` })),
+    el('div', { class: 'progress' }, el('i', { style: `width:${((shown - 1) / session.total) * 100}%` })),
+    el('span', { class: 'tag', text: tagText }),
+    el('p', { class: 'question', text: q.text }),
+    el('div', { class: 'opts' }, buttons),
+    feedback,
+  );
+  if (multi || exam) paintSelection(); else setDock(null);
+  window.scrollTo(0, 0);
+}
+
+document.addEventListener('keydown', (e) => { if (session && session.keys) session.keys(e); });
+
+/* ---------- result ---------- */
+function renderResult() {
+  const { results, mode } = session;
+  const good = results.filter((r) => r.ok).length;
+  const pct = Math.round((good / results.length) * 100);
+  const mistakes = results.filter((r) => !r.ok);
+  if (mode === 'order') save({ pos: { ...store.pos, [session.scope]: 0 } });
+  const isLearn = mode === 'learn-check';
+  if (isLearn) {
+    const learned = Object.fromEntries(results.filter((r) => r.ok).map((r) => [r.id, 1]));
+    save({ known: { ...store.known, ...learned } });
+  }
+  const upcoming = isLearn ? nextBatch(scopeIds(session.scope)) : [];
+  session = null;
+  if (isLearn && mistakes.length) {
+    setDock(`Доучить ошибки (${mistakes.length})`, () => startLearn(mistakes.map((r) => r.id)), false, { label: 'В меню', handler: renderHome });
+  } else if (isLearn && upcoming.length) {
+    setDock('Следующие 10', () => startLearn(upcoming), false, { label: 'В меню', handler: renderHome });
+  } else {
+    setDock('В меню', renderHome);
+  }
+
+  const review = mistakes.map((r) => {
+    const q = BY_ID[r.id];
+    return el('div', { class: 'review' },
+      el('p', { text: `${BLOCKS[q.block].name} №${q.num}. ${q.text}` }),
+      el('ul', {}, q.answers.map((t, j) => {
+        const isCorrect = q.correct.includes(j);
+        if (isCorrect) return el('li', { class: 'yes', text: '✓ ' + t });
+        if (r.picked.includes(j)) return el('li', { class: 'no', text: t });
+        return null;
+      })));
+  });
+
+  app.replaceChildren(
+    el('h1', { text: { exam: 'Экзамен окончен', 'learn-check': 'Проверка порции' }[mode] || 'Готово' }),
+    el('div', { class: 'score' }, el('b', { text: `${pct}%` }), el('span', { text: isLearn
+      ? `выучено ${good} из ${results.length}` + (mistakes.length ? ' — ошибки доучим ещё раз' : '')
+      : `верно ${good} из ${results.length}` })),
+    ...(mistakes.length && !isLearn ? [el('div', { class: 'row' },
+      el('button', { class: 'ghost', text: `Прорешать ошибки этой попытки (${mistakes.length})`, on: { click: () => { startSession('errors', shuffle(mistakes.map((r) => r.id))); } } }))] : []),
+    ...(mistakes.length ? [el('div', { class: 'label', text: 'Разбор ошибок' })] : []),
+    ...review,
+  );
+  window.scrollTo(0, 0);
+}
+
+renderHome();
+</script>
+</body>
+</html>
