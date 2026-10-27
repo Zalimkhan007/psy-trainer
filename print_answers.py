@@ -4,9 +4,10 @@
 Оформление (поля, шрифт, стили) берётся из готового docx БЖД — шаблон по умолчанию
 «Загрузки/Блок В — с ответами.docx»; из него заменяется только текст.
 
-    python print_answers.py [шаблон.docx]
+    python print_answers.py [--only-correct] [шаблон.docx]
 
 Итог: Загрузки/Психология уровень N — с ответами.docx (+ .pdf, если есть Word).
+С --only-correct — «… — только правильные.docx»: под вопросом остаются одни верные ответы.
 """
 import json
 import re
@@ -59,11 +60,22 @@ def answer_par(text, ok, keep_next, after=30, border=None):
             + run("✔\t" if ok else "✗\t", SYM + rpr) + run(text, rpr) + '</w:p>')
 
 
-def question_xml(num, q, multi):
+def correct_par(text, keep_next):
+    keep = '<w:keepNext/>' if keep_next else '<w:keepNext w:val="false"/>'
+    return (f'<w:p><w:pPr>{keep}<w:keepLines/><w:spacing w:after="30"/>'
+            f'<w:ind w:left="680" w:hanging="340"/></w:pPr>'
+            + run("✔	", SYM + BOLD) + run(text, BOLD) + '</w:p>')
+
+
+def question_xml(num, q, multi, only_correct=False):
     text = " ".join(q["q"])
     out = [('<w:p><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="200" w:after="60"/>'
             '<w:ind w:left="340" w:hanging="340"/></w:pPr>'
             + run(f"{num}. ", BOLD) + run(text, BOLD) + '</w:p>')]
+    if only_correct:
+        ok = [a for a in q["a"] if a["ok"]]
+        out += [correct_par(a["t"], i < len(ok) - 1) for i, a in enumerate(ok)]
+        return "".join(out)
     if multi:
         k, n = sum(a["ok"] for a in q["a"]), len(q["a"])
         note = f'Правильных {k} {plural(k, "ответ", "ответа", "ответов")} из {n}'
@@ -76,7 +88,7 @@ def question_xml(num, q, multi):
     return "".join(out)
 
 
-def body_xml(data, title, subtitle):
+def body_xml(data, title, subtitle, only_correct=False):
     n = len(data)
     head = [
         '<w:p><w:pPr><w:spacing w:after="80"/><w:jc w:val="center"/></w:pPr>'
@@ -84,6 +96,13 @@ def body_xml(data, title, subtitle):
         '<w:p><w:pPr><w:spacing w:after="160"/><w:jc w:val="center"/></w:pPr>'
         + run(f'{n} {plural(n, "вопрос", "вопроса", "вопросов")} · {subtitle}',
               BLACK + '<w:sz w:val="22"/><w:szCs w:val="22"/>') + '</w:p>',
+    ]
+    if only_correct:
+        head.append('<w:p><w:pPr><w:spacing w:after="120"/><w:jc w:val="center"/>'
+                    '<w:pBdr><w:bottom w:val="single" w:color="999999" w:sz="6" w:space="8"/></w:pBdr></w:pPr>'
+                    + run("Показаны только правильные ответы", '<w:i/><w:iCs/>' + BLACK) + '</w:p>')
+        return "".join(head)
+    head += [
         answer_par("Правильный ответ — галочка, жирный шрифт, рамка", True, False, after=40),
         answer_par("Неправильный ответ — крестик, обычный шрифт", False, False, after=120,
                    border='<w:pBdr><w:bottom w:val="single" w:color="999999" w:sz="6" w:space="8"/></w:pBdr>'),
@@ -91,15 +110,15 @@ def body_xml(data, title, subtitle):
     return "".join(head)
 
 
-def build_docx(template, out_path, data, title, footer, subtitle, multi):
+def build_docx(template, out_path, data, title, footer, subtitle, multi, only_correct=False):
     with zipfile.ZipFile(template) as zin:
         files = {name: zin.read(name) for name in zin.namelist()}
 
     doc = files["word/document.xml"].decode("utf-8")
     start = doc.index("<w:body>") + len("<w:body>")
     end = doc.rindex("<w:sectPr")
-    content = body_xml(data, title, subtitle) + "".join(
-        question_xml(i + 1, q, multi) for i, q in enumerate(data))
+    content = body_xml(data, title, subtitle, only_correct) + "".join(
+        question_xml(i + 1, q, multi, only_correct) for i, q in enumerate(data))
     files["word/document.xml"] = (doc[:start] + content + doc[end:]).encode("utf-8")
 
     ftr = files["word/footer1.xml"].decode("utf-8")
@@ -129,14 +148,18 @@ def to_pdf(docx_paths):
 
 
 def main():
-    template = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_TEMPLATE
+    args = sys.argv[1:]
+    only_correct = "--only-correct" in args
+    args = [a for a in args if a != "--only-correct"]
+    template = Path(args[0]) if args else DEFAULT_TEMPLATE
+    suffix = "только правильные" if only_correct else "с ответами"
     if not template.exists():
         raise SystemExit(f"Нет шаблона: {template}")
     made = []
     for fname, title, footer, subtitle, multi in LEVELS:
         data = json.loads((ROOT / "data" / fname).read_text(encoding="utf-8"))
-        out = DOWNLOADS / f"{title.replace(' — ', ' ')} — с ответами.docx"
-        build_docx(template, out, data, title, footer, subtitle, multi)
+        out = DOWNLOADS / f"{title.replace(' — ', ' ')} — {suffix}.docx"
+        build_docx(template, out, data, title, footer, subtitle, multi, only_correct)
         made.append(out)
         print("docx:", out)
     to_pdf(made)
